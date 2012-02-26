@@ -33,7 +33,7 @@ config.channels.each do |channel|
     prettifier.update_day
   end
 
-  file "html/#{channel.name}/index.html" => [today_html, *daily_log_html_files(channel.name)[-2..-1]] do |t|
+  file "html/#{channel.name}/index.html" => [today_html, *daily_log_html_files(channel.name)] do |t|
     puts "generating index"
     File.open(t.name, "w") {|fout| fout.puts IrcLogger::IndexGenerator.new(channel) }
   end
