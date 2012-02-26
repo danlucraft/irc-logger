@@ -10,7 +10,9 @@ module IrcLogger
     
     def connect
       irc = EyeAreSee.new(@username, @server, :channel => @channel)
-      log = Logger.new(File.open(@target_path, "a"), 'daily') #rotates to @target_path.20121123
+      file = File.open(@target_path, "a")
+      file.sync = true
+      log = Logger.new(file, 'daily') #rotates to @target_path.20121123
       log.level = Logger::INFO
       log.datetime_format = "%Y-%m-%d %H:%M:%S"
       
