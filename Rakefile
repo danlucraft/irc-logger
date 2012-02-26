@@ -32,13 +32,23 @@ config.channels.each do |channel|
     File.open(today_html, "w") {|fout| fout.puts prettifier }
     prettifier.update_day
   end
-  
-  file "html/#{channel.name}/index.html" => [today_html, *daily_log_html_files(channel.name)[-6..-1]] do |t|
+
+  file "html/#{channel.name}/index.html" => [today_html, *daily_log_html_files(channel.name)[-2..-1]] do |t|
     puts "generating index"
     File.open(t.name, "w") {|fout| fout.puts IrcLogger::IndexGenerator.new(channel) }
   end
-  
-end  
+end
+
+task :logrotate do
+  config.channels.each do |channel|
+    Dir["logs/#{channel.name}/today.log*"].each do |file|
+      next unless file =~ /\.(20\d\d)(\d\d)(\d\d)$/
+      new_file = "logs/#{channel.name}/#{$1}/#{$2}/#{$3}.log"
+      mkdir_p(File.dirname(new_file))
+      mv(file, new_file)
+    end
+  end
+end
 
 task :update => config.channels.map {|c| "html/#{c.name}/index.html"}
 task :copy do
@@ -46,6 +56,6 @@ task :copy do
     FileUtils.cp_r(path, "../public/")
   end
 end
-task :default => [:update, :resources, :copy]
+task :default => [:logrotate, :update, :resources, :copy]
 
 

@@ -40,7 +40,7 @@ module IrcLogger
     
     <table>
       <tr><td>day</td><td>messages</td><td>participants</td></tr>}
-      days.to_a.sort_by(&:first).reverse.each do |log_path, info|
+      days.to_a.sort_by{|_, i| i[:start_day]}.reverse.each do |log_path, info|
         html << "<tr><td><a href=\"../"+ log_path.gsub("logs/", "").gsub(".log", "") +".html\">"
         html << DateTime.parse(nice_date(info[:start_day])).strftime("%A %d %b %y") +" "
         html << "</a></td><td>"
