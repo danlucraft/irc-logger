@@ -3,8 +3,8 @@ module IrcLogger
   class UserColours
     def self.get(username)
       @user_colours ||= begin
-        if File.exist?("cache/user_colours.yml")
-          YAML.load(File.read("cache/user_colours.yml"))
+        if File.exist?("logs/user_colours.yml")
+          YAML.load(File.read("logs/user_colours.yml"))
         else
           {}
         end
@@ -13,7 +13,7 @@ module IrcLogger
         colour
       else
         colour = (@user_colours[username] = random_colour)
-        File.open("cache/user_colours.yml", "w") {|f| f.puts @user_colours.to_yaml }
+        File.open("logs/user_colours.yml", "w") {|f| f.puts @user_colours.to_yaml }
         colour
       end
     end

@@ -3,29 +3,8 @@
 $:.push(File.expand_path("../lib", __FILE__))
 require 'irc_logger'
 
-def daily_log_html_files
-  Dir["logs/**/*"].map {|log_file| log_file.gsub("logs", "html").gsub(".log", ".html")}.select {|log_file| log_file =~ /\.html$/}
-end
-
-directory "html"
-
-now = Time.now
-todays_log_file = now.strftime("logs/%Y/%m/%d.log")
-file todays_log_file => "rubinius.log" do |t|
-  cp "rubinius.log", todays_log_file
-end
-
-rule %r{html/\d+/\d+/\d+\.html} => [proc {|target| %r{html/(\d+/\d+/\d+)\.html} =~ target; "logs/#{$1}.log" }] do |t|
-  mkdir_p(File.dirname(t.name))
-  puts "prettifying #{t.source} and updating days cache"
-  prettifier = IrcLogger::Prettifier.new(t.source)
-  File.open(t.name, "w") {|fout| fout.puts prettifier }
-  prettifier.update_day
-end
-
-file "html/index.html" => ["html", todays_log_file, *daily_log_html_files[0..10]] do |t|
-  puts "generating index"
-  File.open(t.name, "w") {|fout| fout.puts IrcLogger::IndexGenerator.new }
+def daily_log_html_files(channel)
+  Dir["logs/#{channel}/**/*"].map {|log_file| log_file.gsub("logs", "html").gsub(".log", ".html")}.select {|log_file| log_file =~ /\.html$/ and log_file =~ /20\d\d/}
 end
 
 task :resources do
@@ -33,5 +12,30 @@ task :resources do
   cp "resources/prototype.js", "html"
 end  
 
-task :default => ["html/index.html", :resources] do
-end
+config = IrcLogger::Config.new
+config.channels.each do |channel|
+  directory "html/#{channel.name}"
+
+  rule %r{html/#{channel.name}/\d+/\d+/\d+\.html} => [proc {|target| %r{html/#{channel.name}/(\d+/\d+/\d+)\.html} =~ target; "logs/#{channel.name}/#{$1}.log" }] do |t|
+    mkdir_p(File.dirname(t.name))
+    puts "prettifying #{t.source} into #{t.name} and updating days cache"
+    prettifier = IrcLogger::Prettifier.new(channel, t.source, 3)
+    File.open(t.name, "w") {|fout| fout.puts prettifier }
+    prettifier.update_day
+  end
+  
+  today_html = "html/#{channel.name}/today.html"
+  today_log  = "logs/#{channel.name}/today.log"
+  file today_html => today_log do
+    puts "prettifying #{today_log} into #{today_html} and updating days cache"
+    prettifier = IrcLogger::Prettifier.new(channel, today_log, 1)
+    File.open(today_html, "w") {|fout| fout.puts prettifier }
+    prettifier.update_day
+  end
+  
+  file "html/#{channel.name}/index.html" => [today_html, *daily_log_html_files(channel.name)[-3..-1]] do |t|
+    puts "generating index"
+    File.open(t.name, "w") {|fout| fout.puts IrcLogger::IndexGenerator.new(channel) }
+  end
+  
+end  

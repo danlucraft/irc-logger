@@ -2,12 +2,13 @@
 module IrcLogger
   class IndexGenerator
     
-    def initialize
+    def initialize(channel)
+      @channel = channel
     end
     
     def days
       @days ||= begin
-        index_path = "cache/days.yaml"
+        index_path = @channel.logs_directory + "/days.yaml"
         if File.exist?(index_path)
           YAML.load(File.read(index_path))
         else
@@ -23,8 +24,8 @@ module IrcLogger
     end
     
     def to_s
-      html = %q{
-    <p>IRC logs of #rubinius, updated every 10 minutes. Times are GMT+1</p>
+      html = %Q{
+    <p>IRC logs of ##{@channel.name}, updated every 10 minutes. Times are GMT+1</p>
     <p>If they are not being updated correctly, please email dan@fluentradical.com</p>
     
     <!-- Google CSE Search Box Begins  -->
@@ -40,7 +41,7 @@ module IrcLogger
     <table>
       <tr><td>day</td><td>messages</td><td>participants</td></tr>}
       days.to_a.sort_by(&:first).reverse.each do |log_path, info|
-        html << "<tr><td><a href=\""+ log_path.gsub("logs/", "").gsub(".log", "") +".html\">"
+        html << "<tr><td><a href=\"../"+ log_path.gsub("logs/", "").gsub(".log", "") +".html\">"
         html << DateTime.parse(nice_date(info[:start_day])).strftime("%A %d %b %y") +" "
         html << "</a></td><td>"
         html << info[:num].to_s
@@ -48,8 +49,9 @@ module IrcLogger
         html << info[:perps]
         html << "</td></tr>"
       end
-      html_start = IrcLogger.html_start(0) % ["", ""]
-      html_start + html + HTML_END
+      html_start = @channel.html_start(1) % ["", ""]
+      html_start + html + @channel.html_end
     end
+    
   end
 end

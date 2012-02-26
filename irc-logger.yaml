@@ -1,0 +1,4 @@
+- server: irc.freenode.net
+  channel: "#rubinius"
+- server: irc.freenode.net
+  channel: "#redcar"

@@ -6,8 +6,10 @@ module IrcLogger
   class Prettifier
     attr_reader :log_path
     
-    def initialize(log_path)
+    def initialize(channel, log_path, file_depth)
+      @channel = channel
       @log_path = log_path
+      @file_depth = file_depth
     end
     
     def lines
@@ -48,9 +50,9 @@ module IrcLogger
             data[:end_day]     = $1
             data[:end_time]    = $2
             time = $2
-            if l =~ /\[\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d\] :([^!]+)\!(.*?)PRIVMSG #rubinius :.ACTION (.*)../
+            if l =~ /\[\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d\] :([^!]+)\!(.*?)PRIVMSG #{@channel.channel} :.ACTION (.*)../
                 data[:messages] << {:type => :action, :user => $1, :action => CGI.escapeHTML($3), :time => time}
-            elsif l =~ /\[\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d\] :([^!]+)\!(.*?)PRIVMSG #rubinius :(.*)/
+            elsif l =~ /\[\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d\] :([^!]+)\!(.*?)PRIVMSG #{@channel.channel} :(.*)/
                 data[:messages] << {:type => :message, :user => $1, :message => CGI.escapeHTML($3), :time => time}
             end
           elsif l =~ /^(\d\d:\d\d:\d\d)/
@@ -94,15 +96,15 @@ module IrcLogger
     end
     
     def update_day
-      day_file = File.expand_path("../../../cache/days.yaml", __FILE__)
+      day_file = File.expand_path(@channel.logs_directory + "/days.yaml", @log_path)
       days = File.exist?(day_file) ? YAML.load(File.read(day_file)) : {}
       days[@log_path] = {:perps => data[:perps], :num => data[:num], :start_day => data[:start_day] }
       File.open(day_file, "w") {|f| f.puts days.to_yaml}
     end
     
     def to_s
-      html = %q{
-    <p><a href="../../index.html">Index</a></p>
+      html = %Q{
+    <p><a href="#{"../"*(@file_depth - 1)}index.html">Index</a></p>
     <p>
       <a href="#" onclick="$$('.doorrow').each(Element.show);">Show enters and exits.</a>
       <a href="#" onclick="$$('.doorrow').each(Element.hide);">Hide enters and exits.</a>
@@ -151,8 +153,8 @@ module IrcLogger
         end
       end
       
-      html_start = IrcLogger.html_start(2) % ([": #{DateTime.parse(data[:start_day]).strftime("%A")} #{nice_date(data[:start_day])}"]*2)
-      html_start + html + HTML_END
+      html_start = @channel.html_start(@file_depth) % ([": #{DateTime.parse(data[:start_day]).strftime("%A")} #{nice_date(data[:start_day])}"]*2)
+      html_start + html + @channel.html_end
     end
     
   end

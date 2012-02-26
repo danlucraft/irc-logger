@@ -3,11 +3,18 @@
 
 $:.push(File.expand_path("../../lib", __FILE__))
 require 'irc_logger'
+username = ARGV[0]
 
-server = ARGV[0]
-channel = ARGV[1]
-username = ARGV[2]
-target = ARGV[3]
-p [server, channel, username, target]
-bot = IrcLogger::Logbot.new(server, channel, username, target)
-bot.connect
+unless username
+  raise "need a username"
+end
+config = IrcLogger::Config.new
+log_bots = config.channels.map {|c| c.logbot(username) }
+threads = log_bots.map do |log_bot|
+  Thread.new do
+    p log_bot
+    log_bot.connect
+  end
+end
+
+threads.each {|t| t.join}
