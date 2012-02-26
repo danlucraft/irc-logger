@@ -33,9 +33,19 @@ config.channels.each do |channel|
     prettifier.update_day
   end
   
-  file "html/#{channel.name}/index.html" => [today_html, *daily_log_html_files(channel.name)[-3..-1]] do |t|
+  file "html/#{channel.name}/index.html" => [today_html, *daily_log_html_files(channel.name)[-6..-1]] do |t|
     puts "generating index"
     File.open(t.name, "w") {|fout| fout.puts IrcLogger::IndexGenerator.new(channel) }
   end
   
 end  
+
+task :update => config.channels.map {|c| "html/#{c.name}/index.html"}
+task :copy do
+  Dir["html/*"].each do |path|
+    FileUtils.cp_r(path, "../public/")
+  end
+end
+task :default => [:update, :resources, :copy]
+
+
